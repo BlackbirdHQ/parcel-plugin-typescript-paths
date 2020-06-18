@@ -24,7 +24,8 @@
     "test": "mocha --timeout 30000",
     "build": "tsc",
     "tsc": "tsc",
-    "prepublish": "tsc"
+    "prepublish": "tsc",
+    "postinstall": "tsc"
   },
   "repository": {
     "type": "git",
