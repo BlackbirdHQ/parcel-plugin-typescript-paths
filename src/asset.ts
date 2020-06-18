@@ -36,9 +36,41 @@ class TypeScriptModuledResolveAsset extends TypeScriptAsset {
     return `./${relativePath}${targetFile}`.replace(/\/{2,}/g, '/');
   }
 
-  public async fixImports(code: string) {
-    const tsconfig = await super.getConfig(['tsconfig.json']); // Overwrite default if config is found
+  private async getConfig(filenames: string[], { path: searchPath }: { path?: string } = {}) {
+    const [primaryFile] = filenames;
+    const [fileName, ...pathParts] = primaryFile.split('/').reverse();
 
+    const maybeNextSearchPath = path.resolve(path.dirname(this.name), pathParts.join('/'));
+    if (typeof searchPath !== 'string' || maybeNextSearchPath.split('/').length < searchPath.split('/').length ) {
+      searchPath = maybeNextSearchPath;
+    }
+
+    const { compilerOptions, extends: _extends, ...config } = await super.getConfig([fileName], { path: searchPath });
+
+    let extendedConfig;
+    if (_extends) {
+      const [extendingFileName, ...extendsPathParts] = _extends.split('/').reverse();
+      const extendedSearchPath = path.resolve(searchPath, extendsPathParts.join('/'));
+      extendedConfig = await this.getConfig([extendingFileName], { path: extendedSearchPath });
+    } else {
+      extendedConfig = { compilerOptions: {} };
+    }
+
+    const { compilerOptions: extendingCompilerOptions, ...extendingConfig } = extendedConfig;
+
+    return {
+      compilerOptions: {
+        ...extendingCompilerOptions,
+        ...compilerOptions,
+      },
+      ...extendingConfig,
+      ...config,
+    };
+  }
+
+  public async fixImports(code: string) {
+    const tsconfig = await this.getConfig(['tsconfig.json']);
+    console.log(tsconfig);
     const paths: { [key: string]: string[] } = tsconfig.compilerOptions.paths;
     if (typeof paths === 'undefined' || paths === null) {
       return;
