@@ -16,7 +16,6 @@
     "module": "commonjs",
     "target": "es2018",
     "importHelpers": false,
-    "typeRoots": ["node_modules/@types"],
     "lib": ["esnext", "dom"]
   }
 }
